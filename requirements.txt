@@ -8,7 +8,7 @@ cloudevents==1.9.0
 colorama==0.4.6
 deprecation==2.1.0
 exceptiongroup==1.1.3
-Flask==2.3.3
+Flask==2.1.1
 functions-framework==3.4.0
 gunicorn==21.2.0
 h11==0.14.0
