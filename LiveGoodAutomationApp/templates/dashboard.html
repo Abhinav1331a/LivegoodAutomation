@@ -1,0 +1,189 @@
+{% extends "base.html" %} {% block title %}Dashboard{% endblock %} {% block
+content %}
+<!-- Section: Design Block -->
+<section class="background-radial-gradient overflow-y-scroll">
+  <style>
+    .background-radial-gradient {
+      height: 100%;
+      background-color: hsl(218, 41%, 15%);
+      background-image: radial-gradient(
+          650px circle at 0% 0%,
+          hsl(218, 41%, 35%) 15%,
+          hsl(218, 41%, 30%) 35%,
+          hsl(218, 41%, 20%) 75%,
+          hsl(218, 41%, 19%) 80%,
+          transparent 100%
+        ),
+        radial-gradient(
+          1250px circle at 100% 100%,
+          hsl(218, 41%, 45%) 15%,
+          hsl(218, 41%, 30%) 35%,
+          hsl(218, 41%, 20%) 75%,
+          hsl(218, 41%, 19%) 80%,
+          transparent 100%
+        );
+    }
+
+    #radius-shape-1 {
+      height: 220px;
+      width: 220px;
+      top: -60px;
+      left: -130px;
+      background: radial-gradient(#44006b, #ad1fff);
+      overflow: hidden;
+    }
+
+    #radius-shape-2 {
+      border-radius: 38% 62% 63% 37% / 70% 33% 67% 30%;
+      bottom: -60px;
+      right: -110px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(#44006b, #ad1fff);
+      overflow: hidden;
+    }
+
+    .bg-glass {
+      background-color: hsla(0, 0%, 100%, 0.9) !important;
+      backdrop-filter: saturate(200%) blur(25px);
+    }
+
+    .form-outline input[type="text"],
+    .form-outline input[type="password"] {
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+
+    .form-outline label {
+      left: 0.5rem !important;
+      right: 0.5rem !important;
+    }
+
+    .form-outline input[type="text"]:focus:not([readonly]) + label,
+    .form-outline input[type="password"]:focus:not([readonly]) + label {
+      left: 0.5rem !important;
+      right: 0.5rem !important;
+    }
+
+    .form-outline input[type="text"]:not(:placeholder-shown) + label,
+    .form-outline input[type="password"]:not(:placeholder-shown) + label {
+      left: 0.5rem !important;
+      right: 0.5rem !important;
+    }
+
+    form button[type="submit"] {
+      margin-top: 0.5rem !important;
+    }
+
+    form span {
+      display: block !important;
+      margin-top: 0.5rem !important;
+      margin-bottom: 0.5rem !important;
+    }
+
+    form span:before {
+      content: "Message : " !important;
+    }
+
+    form span:not(:empty) {
+      display: block !important;
+    }
+
+    form span:empty {
+      display: none !important;
+    }
+
+    form div.form-outline:first-of-type {
+      margin-top: 0.5rem !important;
+    }
+
+    form div.form-outline:last-of-type {
+      margin-bottom: 0.5rem !important;
+    }
+
+    form div.form-outline:not(:first-of-type):not(:last-of-type) {
+      margin: 0.5rem auto !important;
+    }
+
+    form div.form-check:last-of-type {
+      margin-bottom: 0.5rem !important;
+    }
+  </style>
+
+  <div class="container px-4 py-5 px-md-5 text-center text-lg-start my-5">
+    <div class="row gx-lg-5 align-items-center mb-5">
+      <div class="position-relative">
+        <div
+          id="radius-shape-1"
+          class="position-absolute rounded-circle shadow-5-strong"
+        ></div>
+        <div
+          id="radius-shape-2"
+          class="position-absolute shadow-5-strong"
+        ></div>
+        <div class="card bg-glass">
+          <div class="card-body px-4 py-5 px-md-5">
+            <h4 class="display-5 fw-bold text-center" style="font-size: 35px">
+              DASHBOARD
+            </h4>
+            <section>
+              <div>
+                <h4>Add a new account</h4>
+                <form method="POST" action="/dashboard">
+                  <div class="form-outline mb-4">
+                    <label class="form-label" for="form3Example3"
+                      >Username</label
+                    >
+                    <input
+                      type="text"
+                      id="form3Example3"
+                      class="form-control"
+                      placeholder="Enter LiveGood Username..."
+                      name="username"
+                      required
+                    />
+                  </div>
+                  <div class="form-outline mb-4">
+                    <label class="form-label" for="form3Example4"
+                      >Password</label
+                    >
+                    <input
+                      type="password"
+                      id="form3Example4"
+                      class="form-control"
+                      placeholder="Enter LiveGood Password..."
+                      name="password"
+                      required
+                    />
+                  </div>
+                  <button class="btn btn-primary" type="submit">Save</button>
+                  <br />
+                  <span style="color: red">{{message}}</span>
+                </form>
+                <h4>Your Accounts</h4>
+                {% for account in accounts %}
+                <form method="GET" action="/dashboard" id="myForm">
+                  <input type="text" name="id" value="{{account[0]}}" hidden>
+                  <div class="form-outline mb-4">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" class="form-control" value="{{account[2]}}" name="username" />
+                  </div>
+                  <div class="form-outline mb-4">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" class="form-control" value="{{account[3]}}" name="password"/>
+                  </div>
+                  <button class="btn btn-primary mb-2" type="submit" formmethod="POST" formaction="/detailedstats">Get Statistics</button>
+                  <button class="btn btn-info mb-2" type="submit" formmethod="PUT" formaction="/updatelivegoodaccount">Update Details</button>
+                  <button class="btn btn-danger mb-2" type="submit" formmethod="POST" formaction="/deletelivegoodaccount">Delete Account</button>
+                </form>
+                {% endfor %}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Section: Design Block -->
+{% endblock %}

@@ -1,0 +1,8 @@
+@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,500,600,700,800');
+* {
+  box-sizing: border-box;
+}
+body, html, .App, #root{
+    width: 100%;
+    height: 100%;
+}
