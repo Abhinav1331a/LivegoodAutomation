@@ -27,5 +27,5 @@ trio==0.22.2
 trio-websocket==0.10.3
 urllib3==2.0.4
 watchdog==3.0.0
-Werkzeug==2.3.7
+Werkzeug==2.1.1
 wsproto==1.2.0
