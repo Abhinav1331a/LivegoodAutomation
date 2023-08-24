@@ -14,7 +14,6 @@ from http import HTTPStatus
 from LiveGoodAutomationApp.helper import * 
 import chromedriver_binary
 
-
 dashboard_bp = Blueprint('dashboard', __name__)
 
 # Database setup

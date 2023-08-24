@@ -9,7 +9,7 @@ conn = sqlite3.connect('livegood.db')
 conn.execute('''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL,
+        username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
     )
 ''')
@@ -30,7 +30,6 @@ def signup():
             try: 
                 conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
                 conn.commit()
-                conn.close()
             except:
                 return render_template('signup.html', message="Signup failed!", status="error")
 
