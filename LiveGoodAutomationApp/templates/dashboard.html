@@ -110,14 +110,14 @@ content %}
         ></div>
         <div class="card bg-glass">
           <div class="card-body px-4 py-5 px-md-5">
-            <h4 class="display-5 fw-bold text-center" style="font-size: 35px">
+            <h2 class="fw-bold text-center">
               DASHBOARD
-            </h4>
+            </h2>
             <section>
               <div>
                 <br>
                 <h4>Add a new account</h4>
-                <form class="d-flex flex-row align-items-end justify-content-between" method="POST" action="/dashboard">
+                <form class="d-flex flex-row align-items-end justify-content-around" method="POST" action="/dashboard">
                   <div class="form-outline col-4">
                     <label class="form-label" for="form3Example3">Username</label>
                     <input
@@ -144,24 +144,24 @@ content %}
                   </div>
                   <button class="btn btn-primary col-2" type="submit">Save</button>
                 </form>
-                <h4>Your Accounts</h4>
+                <h4 class="mt-4">Your Accounts</h4>
                 {% for account in accounts %}
-                <form class="d-xxl-flex flex-xxl-row align-items-xxl-end justify-content-xxl-between" method="GET" action="/dashboard" id="myForm">
+                <form class="d-xxl-flex flex-xxl-row align-items-xxl-end justify-content-xxl-around" method="GET" action="/dashboard" id="myForm">
                   <input type="text" name="id" value="{{account[0]}}" hidden>
                   <input type="text" name="user" value="{{account[1]}}" hidden>
                   <div class="d-xxl-flex flex-xxl-row col-xxl-6 justify-content-xxl-between">
                     <div class="form-outline col-xxl-5">
                       <label class="form-label" for="livegood_username">Username</label>
-                      <input type="text" class="form-control" value="{{account[2]}}" name="livegood_username" autocomplete="on" required/>
+                      <input type="text" class="form-control" value="{{account[2]}}" name="livegood_username" id="livegood_username" autocomplete="on" required/>
                     </div>
                     <div class="form-outline col-xxl-5">
                       <label class="form-label" for="livegood_password">Password</label>
-                      <input type="password" class="form-control" value="{{account[3]}}" name="livegood_password" autocomplete="current-password" required/>
+                      <input type="password" class="form-control" value="{{account[3]}}" name="livegood_password" id="livegood_password" autocomplete="current-password" required/>
                     </div>
                   </div>
                   <div class="mt-sm-3 mt-md-3 mt-lg-3 mt-xl-3 mt-xxl-auto col-xxl-5 d-xxl-flex flex-xxl-row justify-content-xxl-between">
                     <button class="btn btn-primary" type="submit" formmethod="POST" formaction="/detailedstats">Get Statistics</button>
-                    <button class="btn btn-info" type="submit" formmethod="POST" formaction="/updatelivegoodaccount">Update Details</button>
+                    <button class="btn btn-warning" type="submit" formmethod="POST" formaction="/updatelivegoodaccount">Update Details</button>
                     <button class="btn btn-danger" type="submit" formmethod="POST" formaction="/deletelivegoodaccount">Delete Account</button>
                   </div>
                 </form>

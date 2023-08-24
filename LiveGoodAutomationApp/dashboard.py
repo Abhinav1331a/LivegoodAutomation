@@ -1,6 +1,19 @@
+import subprocess
+import sys
 from flask import Blueprint, render_template, request, redirect, url_for, session
 import sqlite3
 from functools import wraps
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
+import logging
+from http import HTTPStatus
+from LiveGoodAutomationApp.helper import * 
+import chromedriver_binary
+
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -56,7 +69,7 @@ def dashboard():
                 return render_template('dashboard.html', accounts=accounts, message=message, status=status)
 
         
-@dashboard_bp.route('/deletelivegoodaccount', methods=['GET', 'POST'])
+@dashboard_bp.route('/deletelivegoodaccount', methods=['POST'])
 def deletelivegoodaccount():
     if request.method == 'POST':
         if session['user_id'] in (None, ''):
@@ -78,7 +91,7 @@ def deletelivegoodaccount():
                 accounts = cursor.fetchall()
                 return render_template('dashboard.html', accounts=accounts, message=message, status=status)
 
-@dashboard_bp.route('/updatelivegoodaccount', methods=['GET', 'POST'])
+@dashboard_bp.route('/updatelivegoodaccount', methods=['POST'])
 def updatelivegoodaccount():
     if request.method == 'POST':
         if session['user_id'] in (None, ''):
@@ -103,3 +116,102 @@ def updatelivegoodaccount():
                 cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
                 accounts = cursor.fetchall()
                 return render_template('dashboard.html', accounts=accounts, message=message, status=status)
+
+@dashboard_bp.route('/detailedstats', methods=['POST'])
+def detailedstats():
+    if request.method == "POST":
+        if session['user_id'] in (None, ''):
+            session['user_id']= None
+            return redirect(url_for('auth.login'))
+        user_id = session['user_id']
+        with sqlite3.connect('livegood.db') as conn:
+            try:
+                livegood_username = request.form['livegood_username']
+                livegood_password = request.form['livegood_password']
+                        # Check if format of the input are valid
+                if livegood_username in (None, "") or livegood_password in (None, ""):
+                    return render_template('dashboard.html', message='Username, Password of LiveGood should not be empty or null. Invalid Format.', status="error")
+
+                # Create Options
+                options = Options()
+                options.add_argument("--headless")
+                options.add_argument("--window-size=1920,1080")
+
+                # Create a webdriver instance (you may need to specify the path to the driver executable)
+                try:
+                    driver = webdriver.Chrome(options=options)
+                except WebDriverException as e:
+                    print(f"Error: {e}")
+                    # Update ChromeDriver
+                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', '--force-reinstall', 'chromedriver-binary-auto'])
+                    # Reinitialize the driver
+                    driver = webdriver.Chrome(options=options)
+
+                # Wait for the login to complete and go to the earnings page
+                wait = WebDriverWait(driver, 10)
+
+            
+                # Login
+                login(driver, wait, livegood_username, livegood_password)
+                
+                # Get Earnings
+                earned_value, earned_duration_value, earned_pay_period = getEarnings(driver, wait)
+                print("EARNINGS: ", earned_value, earned_duration_value, earned_pay_period)
+
+                # Get Rank
+                current_rank = getRank(driver, wait)
+                print("RANK: ", current_rank)
+
+                # Get Subscribed Users Expiry Info
+                users_ordered_by_date = getSubscribedUsersExpiryInfo(driver, wait)
+                
+                # Close the driver
+                driver.quit()
+
+                # Using session to implement PRG(Post Redirect Get) arch.
+                session['username'] = livegood_username
+                session['earned_pay_period'] = earned_pay_period
+                session['earned_duration_value'] = earned_duration_value
+                session['earned_value'] = earned_value
+                session['rank'] = current_rank
+                session['users'] = users_ordered_by_date
+                # Redirect to results page
+                return redirect(url_for('dashboard.results'))
+            
+            except TimeoutException as e:
+                logging.error("Failed due to %s", e)
+                cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
+                accounts = cursor.fetchall()
+                try:
+                    login_failed_text = driver.find_element(By.XPATH, '/html/body/div[6]/div/section/div/div/div/table/tbody/tr/td[1]/font/nobr').text
+                    if login_failed_text.lower().strip() == "login failed:":
+                        return render_template("dashboard.html", accounts=accounts, message="Login Failed! Invalid LiveGood Credentails",status="error")
+                except NoSuchElementException:
+                    return render_template("dashboard.html", accounts=accounts, message="Try again later!",status="error")
+            except Exception as e:
+                    logging.error("Failed due to %s", e)
+                    cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
+                    accounts = cursor.fetchall()
+                    message = "Oops, Try again!"
+                    status = "error"
+                    return render_template('dashboard.html', accounts=accounts, message=message, status=status)
+
+@dashboard_bp.route('/results')
+def results():
+    # Retrieve data from session
+    username = session.get('username')
+    earned_pay_period = session.get('earned_pay_period')
+    earned_duration_value = session.get('earned_duration_value')
+    earned_value = session.get('earned_value')
+    rank = session.get('rank')
+    users = session.get('users')
+    # Render template with data
+    return render_template(
+        'detailedStats.html',
+        username=username,
+        earned_pay_period=earned_pay_period,
+        earned_duration_value=earned_duration_value,
+        earned_value=earned_value,
+        rank=rank,
+        users=users
+    )

@@ -1,21 +1,8 @@
 from collections import OrderedDict
 from datetime import datetime
-import json
-from flask import Flask
-from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-import logging
-import functions_framework
-from http import HTTPStatus
-import chromedriver_binary 
-
-app = Flask(__name__)
-logger = logging.getLogger()
-logger.setLevel(logging.WARN)
+from selenium.common.exceptions import TimeoutException
 
 def login(driver, wait, username, password):
     # Open the webpage in the background
@@ -54,7 +41,7 @@ def getEarnings(driver, wait):
             else:
                 print(f"TimeoutException occurred, retrying (attempt {attempt + 1} of {max_attempts})")
     # Get the 1st, 2nd and 4th columns in the row
-    earned_pay_period = driver.find_element(By.XPATH, "/html/body/div[8]/div/div[2]/div/section/div[2]/table/tbody/tr[2]/td/section/div/table/tbody/tr[2]/td[1]")
+    earned_pay_period_column = driver.find_element(By.XPATH, "/html/body/div[8]/div/div[2]/div/section/div[2]/table/tbody/tr[2]/td/section/div/table/tbody/tr[2]/td[1]")
     earned_duration_column = driver.find_element(By.XPATH, "/html/body/div[8]/div/div[2]/div/section/div[2]/table/tbody/tr[2]/td/section/div/table/tbody/tr[2]/td[2]")
     # wait.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[8]/div/div[2]/div/section/div[2]/table/tbody/tr[2]/td/section/div/table/tbody/tr[2]/td[4]')))
     earned_value_column = driver.find_element(By.XPATH, "/html/body/div[8]/div/div[2]/div/section/div[2]/table/tbody/tr[2]/td/section/div/table/tbody/tr[2]/td[4]")
@@ -62,6 +49,7 @@ def getEarnings(driver, wait):
     # Get the values of the 2nd and 4th columns
     earned_value = earned_value_column.text
     earned_duration_value = earned_duration_column.text
+    earned_pay_period = earned_pay_period_column.text
     return earned_value, earned_duration_value, earned_pay_period
 
 def getRank(driver, wait):
@@ -117,73 +105,3 @@ def getSubscribedUsersExpiryInfo(driver, wait):
     # create a new ordered dictionary with the sorted keys
     users_ordered_by_date = OrderedDict((key, users_ordered_by_date[key]) for key in sorted_keys)
     return users_ordered_by_date
-
-@app.route('/getStatistics')
-def getStatistics(request):
-
-    if request.method == 'POST':
-        request_json = request.get_json()
-        # Check if required inputs are there
-        if not request_json or 'username' not in request_json or 'password' not in request_json:
-            return (json.dumps({'message': 'username, password of LiveGood are required. Invalid Arguments.'}), HTTPStatus.BAD_REQUEST, headers)
-
-        # Define the username and password (case sensitive)
-        username = request_json['username']
-        password = request_json['password']
-
-        # Check if format of the input are valid
-        if username in (None, "") or password in (None, ""):
-            return (json.dumps({'message': 'username, password of LiveGood should not be empty or null. Invalid Format.'}), HTTPStatus.BAD_REQUEST, headers)
-
-        # Create Options
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--window-size=1920,1080")
-
-        # Create a webdriver instance (you may need to specify the path to the driver executable)
-        driver = webdriver.Chrome(options=options)
-
-        # Wait for the login to complete and go to the earnings page
-        wait = WebDriverWait(driver, 10)
-
-        try:
-            # Login
-            login(driver, wait, username, password)
-            
-            # Get Earnings
-            earned_value, earned_duration_value, earned_pay_period = getEarnings(driver, wait)
-            print("EARNINGS: ", earned_value, earned_duration_value, earned_pay_period)
-
-            # Get Rank
-            current_rank = getRank(driver, wait)
-            print("RANK: ", current_rank)
-
-            # Get Subscribed Users Expiry Info
-            users_ordered_by_date = getSubscribedUsersExpiryInfo(driver, wait)
-            
-            # Close the driver
-            driver.quit()
-
-            # Formulate return object
-            result = {}
-            result["Username"] = username
-            result[earned_pay_period] = (earned_duration_value ,earned_value)
-            result["Rank"] = current_rank
-            result['Users'] = users_ordered_by_date
-            
-
-            return (json.dumps(result), HTTPStatus.OK, headers)
-        except TimeoutException as e:
-            logger.log(logging.ERROR, "Failed due to %s", e)
-            try:
-                login_failed_text = driver.find_element(By.XPATH, '/html/body/div[6]/div/section/div/div/div/table/tbody/tr/td[1]/font/nobr').text
-                if login_failed_text.lower().strip() == "login failed:":
-                    return (json.dumps({"message": "Login Failed! Invalid Credentails"}), HTTPStatus.NOT_ACCEPTABLE, headers)
-            except NoSuchElementException:
-                pass
-            return (json.dumps({"earned_value": "Try again later!"}), HTTPStatus.INTERNAL_SERVER_ERROR, headers)
-        
-if __name__ == '__main__':
-    app.debug = True
-    app.run()
-            
