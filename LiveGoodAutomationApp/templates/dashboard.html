@@ -70,11 +70,6 @@ content %}
       left: 0.5rem !important;
       right: 0.5rem !important;
     }
-
-    form button[type="submit"] {
-      margin-top: 0.5rem !important;
-    }
-
     form span {
       display: block !important;
       margin-top: 0.5rem !important;
@@ -92,24 +87,16 @@ content %}
     form span:empty {
       display: none !important;
     }
-
-    form div.form-outline:first-of-type {
-      margin-top: 0.5rem !important;
-    }
-
-    form div.form-outline:last-of-type {
-      margin-bottom: 0.5rem !important;
-    }
-
-    form div.form-outline:not(:first-of-type):not(:last-of-type) {
-      margin: 0.5rem auto !important;
-    }
-
-    form div.form-check:last-of-type {
-      margin-bottom: 0.5rem !important;
+    .message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      color: white;
+      display: none;
     }
   </style>
-
+  <div id="message" class="message"></div>
   <div class="container px-4 py-5 px-md-5 text-center text-lg-start my-5">
     <div class="row gx-lg-5 align-items-center mb-5">
       <div class="position-relative">
@@ -128,53 +115,55 @@ content %}
             </h4>
             <section>
               <div>
+                <br>
                 <h4>Add a new account</h4>
-                <form method="POST" action="/dashboard">
-                  <div class="form-outline mb-4">
-                    <label class="form-label" for="form3Example3"
-                      >Username</label
-                    >
+                <form class="d-flex flex-row align-items-end justify-content-between" method="POST" action="/dashboard">
+                  <div class="form-outline col-4">
+                    <label class="form-label" for="form3Example3">Username</label>
                     <input
                       type="text"
                       id="form3Example3"
                       class="form-control"
                       placeholder="Enter LiveGood Username..."
                       name="username"
+                      autocomplete="on"
                       required
                     />
                   </div>
-                  <div class="form-outline mb-4">
-                    <label class="form-label" for="form3Example4"
-                      >Password</label
-                    >
+                  <div class="form-outline col-4">
+                    <label class="form-label" for="form3Example4">Password</label>
                     <input
                       type="password"
                       id="form3Example4"
                       class="form-control"
                       placeholder="Enter LiveGood Password..."
                       name="password"
+                      autocomplete="current-password"
                       required
                     />
                   </div>
-                  <button class="btn btn-primary" type="submit">Save</button>
-                  <br />
-                  <span style="color: red">{{message}}</span>
+                  <button class="btn btn-primary col-2" type="submit">Save</button>
                 </form>
                 <h4>Your Accounts</h4>
                 {% for account in accounts %}
-                <form method="GET" action="/dashboard" id="myForm">
+                <form class="d-xxl-flex flex-xxl-row align-items-xxl-end justify-content-xxl-between" method="GET" action="/dashboard" id="myForm">
                   <input type="text" name="id" value="{{account[0]}}" hidden>
-                  <div class="form-outline mb-4">
-                    <label class="form-label" for="username">Username</label>
-                    <input type="text" class="form-control" value="{{account[2]}}" name="username" />
+                  <input type="text" name="user" value="{{account[1]}}" hidden>
+                  <div class="d-xxl-flex flex-xxl-row col-xxl-6 justify-content-xxl-between">
+                    <div class="form-outline col-xxl-5">
+                      <label class="form-label" for="livegood_username">Username</label>
+                      <input type="text" class="form-control" value="{{account[2]}}" name="livegood_username" autocomplete="on" required/>
+                    </div>
+                    <div class="form-outline col-xxl-5">
+                      <label class="form-label" for="livegood_password">Password</label>
+                      <input type="password" class="form-control" value="{{account[3]}}" name="livegood_password" autocomplete="current-password" required/>
+                    </div>
                   </div>
-                  <div class="form-outline mb-4">
-                    <label class="form-label" for="password">Password</label>
-                    <input type="password" class="form-control" value="{{account[3]}}" name="password"/>
+                  <div class="mt-sm-3 mt-md-3 mt-lg-3 mt-xl-3 mt-xxl-auto col-xxl-5 d-xxl-flex flex-xxl-row justify-content-xxl-between">
+                    <button class="btn btn-primary" type="submit" formmethod="POST" formaction="/detailedstats">Get Statistics</button>
+                    <button class="btn btn-info" type="submit" formmethod="POST" formaction="/updatelivegoodaccount">Update Details</button>
+                    <button class="btn btn-danger" type="submit" formmethod="POST" formaction="/deletelivegoodaccount">Delete Account</button>
                   </div>
-                  <button class="btn btn-primary mb-2" type="submit" formmethod="POST" formaction="/detailedstats">Get Statistics</button>
-                  <button class="btn btn-info mb-2" type="submit" formmethod="PUT" formaction="/updatelivegoodaccount">Update Details</button>
-                  <button class="btn btn-danger mb-2" type="submit" formmethod="POST" formaction="/deletelivegoodaccount">Delete Account</button>
                 </form>
                 {% endfor %}
               </div>
@@ -185,5 +174,26 @@ content %}
     </div>
   </div>
 </section>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+<script>
+  <!-- JavaScript -->
+  $(document).ready(function() {
+      showMessage("{{message}}", "{{status}}")
+  });
+  function showMessage(text, status) {
+    var message = document.getElementById('message');
+    message.textContent = text;
+    if (status==="error"){
+      message.style.backgroundColor = "#D0342C";
+    }
+    else{
+      message.style.backgroundColor = "#4BB543";
+    }
+    message.style.display = 'block';
+    setTimeout(function() {
+      message.style.display = 'none';
+    }, 3000);
+  }
+</script>
 <!-- Section: Design Block -->
 {% endblock %}

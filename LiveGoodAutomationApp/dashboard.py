@@ -26,40 +26,36 @@ def dashboard():
             session['user_id']= None
             return redirect(url_for('auth.login'))
         user_id = session['user_id']
-        # print(user_id)
-        conn = sqlite3.connect('livegood.db')
-        cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
-        accounts = cursor.fetchall()
-        conn.close()
-        # return accounts
-        # context = {}
-        # context['accounts'] = accounts 
-        # print("accounts:", context) 
-        return render_template('dashboard.html', accounts=accounts)
-    if request.method == 'POST':
-        try:
-            if session['user_id'] in (None, ''):
-                session['user_id']= None
-                return redirect(url_for('auth.login'))
-            user_id = session['user_id']
-            username = request.form['username']
-            password = request.form['password']
-            if username in (None, '') or password in (None, ''):
-                return render_template('dashboard.html', message="Invalid Arguments")
-            conn = sqlite3.connect('livegood.db')
-            cursor = conn.execute('INSERT INTO livegood_accounts (user, livegood_username, livegood_password) VALUES (?,?,?)', [user_id,username,password])
-            conn.commit()
-            message = 'Successfully Added!'
-        except sqlite3.IntegrityError as e:
-            message = "These credentials already exist!"
-        except Exception as e:
-            message = "Oops, Try again!"
-        finally:
+        with sqlite3.connect('livegood.db') as conn:
             cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
             accounts = cursor.fetchall()
-            conn.close()
-            return render_template('dashboard.html', accounts=accounts, message=message)
+            return render_template('dashboard.html', accounts=accounts)
+    
+    if request.method == 'POST':
+        if not session.get('user_id'):
+            return redirect(url_for('auth.login'))
+        user_id = session['user_id']
+        username = request.form['username']
+        password = request.form['password']
+        if not username or not password:
+            return render_template('dashboard.html', message="Invalid Arguments", status="error")
+        with sqlite3.connect('livegood.db') as conn:
+            try:
+                conn.execute('INSERT INTO livegood_accounts (user, livegood_username, livegood_password) VALUES (?,?,?)', [user_id,username,password])
+                conn.commit()
+                message = 'Successfully Added!'
+                status = 'success'
+            except sqlite3.IntegrityError:
+                message = "These credentials already exist!"
+                status = 'error'
+            except Exception:
+                message = "Oops, Try again!"
+                status = 'error'
+            finally:
+                accounts = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id]).fetchall()
+                return render_template('dashboard.html', accounts=accounts, message=message, status=status)
 
+        
 @dashboard_bp.route('/deletelivegoodaccount', methods=['GET', 'POST'])
 def deletelivegoodaccount():
     if request.method == 'POST':
@@ -67,16 +63,43 @@ def deletelivegoodaccount():
             session['user_id']= None
             return redirect(url_for('auth.login'))
         user_id = session['user_id']
-        try:
-            id = request.form['id']
-            conn = sqlite3.connect('livegood.db')
-            cursor = conn.execute('DELETE FROM livegood_accounts WHERE id=?', [id])
-            conn.commit()
-            message = "Successfully Deleted"
-        except Exception as e:
-            message = "Oops, Try again!"
-        finally:
-            cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
-            accounts = cursor.fetchall()
-            conn.close()
-            return render_template('dashboard.html', accounts=accounts, message=message)
+        with sqlite3.connect('livegood.db') as conn: 
+            try:
+                id = request.form['id']
+                cursor = conn.execute('DELETE FROM livegood_accounts WHERE id=?', [id])
+                conn.commit()
+                message = "Successfully Deleted"
+                status = "success"
+            except Exception as e:
+                message = "Oops, Try again!"
+                status = "error"
+            finally:
+                cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
+                accounts = cursor.fetchall()
+                return render_template('dashboard.html', accounts=accounts, message=message, status=status)
+
+@dashboard_bp.route('/updatelivegoodaccount', methods=['GET', 'POST'])
+def updatelivegoodaccount():
+    if request.method == 'POST':
+        if session['user_id'] in (None, ''):
+            session['user_id']= None
+            return redirect(url_for('auth.login'))
+        user_id = session['user_id']
+        with sqlite3.connect('livegood.db') as conn: 
+            try:
+                id = request.form['id']
+                livegood_username = request.form['livegood_username']
+                livegood_password = request.form['livegood_password']
+                if not id or not livegood_username or not livegood_password:
+                    return render_template('dashboard.html', message="Invalid Arguments", status="error")
+                cursor = conn.execute('UPDATE livegood_accounts SET livegood_username=?, livegood_password=? WHERE id=?', [livegood_username, livegood_password, id])
+                conn.commit()
+                message = "Successfully Updated"
+                status = "success"
+            except Exception as e:
+                message = "Oops, Try again!"
+                status = "error"
+            finally:
+                cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
+                accounts = cursor.fetchall()
+                return render_template('dashboard.html', accounts=accounts, message=message, status=status)

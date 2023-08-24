@@ -26,14 +26,17 @@ def signup():
         username = request.form['username']
         password = request.form['password']
         
-        conn = sqlite3.connect('livegood.db')
-        conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
-        conn.commit()
-        conn.close()
-        
-        return redirect(url_for('auth.login'))
-    
-    return render_template('signup.html')
+        with sqlite3.connect('livegood.db') as conn:
+            try: 
+                conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
+                conn.commit()
+                conn.close()
+            except:
+                return render_template('signup.html', message="Signup failed!", status="error")
+
+        return render_template('login.html', message="Signup successful!", status="success")
+    if request.method == "GET":
+        return render_template('signup.html')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -44,16 +47,17 @@ def login():
         username = request.form['username']
         password = request.form['password']
         
-        conn = sqlite3.connect('livegood.db')
-        cursor = conn.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, password))
-        user = cursor.fetchone()
-        conn.close()
-        
-        if user:
-            session['user_id'] = user[0]
-            return redirect(url_for('dashboard.dashboard'))
-        else:
-            return "Invalid credentials. Please try again."
+        with sqlite3.connect('livegood.db') as conn:
+            try:
+                cursor = conn.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, password))
+                user = cursor.fetchone()
+                if user:
+                    session['user_id'] = user[0]
+                    return render_template('dashboard.html', message="Successfully logged in!", status="success")
+                else:
+                    return render_template('login.html', message='Invalid credentials, try again!', status = "error")
+            except:
+                return render_template('login.html', message="Login Failed!", status="error")
     
     return render_template('login.html')
 
