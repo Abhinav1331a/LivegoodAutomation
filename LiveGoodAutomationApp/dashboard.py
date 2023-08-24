@@ -145,7 +145,7 @@ def detailedstats():
                 except WebDriverException as e:
                     print(f"Error: {e}")
                     # Update ChromeDriver
-                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', '--force-reinstall', 'chromedriver-binary-auto==116.0.5845.96'])
+                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', '--force-reinstall', 'chromedriver-binary-auto'])
                     # Reinitialize the driver
                     driver = webdriver.Chrome(options=options)
 
