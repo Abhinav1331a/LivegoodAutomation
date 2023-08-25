@@ -13,12 +13,8 @@ import logging
 from http import HTTPStatus
 from LiveGoodAutomationApp.helper import * 
 import chromedriver_binary
-import redis
 
 dashboard_bp = Blueprint('dashboard', __name__)
-
-# Connect to Redis server
-cache = redis.Redis()
 
 # Database setup
 conn = sqlite3.connect('livegood.db')
@@ -205,8 +201,7 @@ def detailedstats():
 
                 # Using session id and cache to implement PRG(Post Redirect Get) arch.
                 cache_key = session['user_id']
-
-                cache.set(cache_key, data)
+                flash(data, category=cache_key)
 
                 # Redirect to results page
                 return redirect(url_for('dashboard.results'))
@@ -240,23 +235,34 @@ def detailedstats():
 
 @dashboard_bp.route('/results')
 def results():
-    # Retrieve data from cache
-    # Generate unique cache key using session ID
-    cache_key = session['user_id']
-    data = cache.get(cache_key)
-    username = data['username']
-    earned_pay_period = data['earned_pay_period']
-    earned_duration_value = data['earned_duration_value']
-    earned_value = data['earned_value']
-    rank = data['rank']
-    users = data['users']
-    # Render template with data
-    return render_template(
-        'detailedStats.html',
-        username=username,
-        earned_pay_period=earned_pay_period,
-        earned_duration_value=earned_duration_value,
-        earned_value=earned_value,
-        rank=rank,
-        users=users
-    )
+    if request.method=="GET":
+        # Retrieve data from cache
+        # Generate unique cache key using session ID
+        cache_key = session['user_id']
+        flash_messages = get_flashed_messages(with_categories=True)
+        data=None
+        for category, msg in flash_messages:
+            if category == cache_key:
+                data = msg
+
+        if data==None:
+            flash("Oops! Try again later.", category="message")
+            flash("error", category="status")
+            return redirect(url_for("dashboard.dashboard"))
+        
+        username = data['username']
+        earned_pay_period = data['earned_pay_period']
+        earned_duration_value = data['earned_duration_value']
+        earned_value = data['earned_value']
+        rank = data['rank']
+        users = data['users']
+        # Render template with data
+        return render_template(
+            'detailedStats.html',
+            username=username,
+            earned_pay_period=earned_pay_period,
+            earned_duration_value=earned_duration_value,
+            earned_value=earned_value,
+            rank=rank,
+            users=users
+        )
