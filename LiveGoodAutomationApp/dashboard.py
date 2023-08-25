@@ -170,7 +170,7 @@ def detailedstats():
                     driver = webdriver.Chrome(options=options)
 
                 # Wait for the login to complete and go to the earnings page
-                wait = WebDriverWait(driver, 10)
+                wait = WebDriverWait(driver, 5)
 
             
                 # Login
@@ -251,6 +251,8 @@ def results():
         rank = data['rank']
         users = data['users']
         # Render template with data
+        message=None
+        status=None
         return render_template(
             'detailedStats.html',
             username=username,
@@ -258,5 +260,7 @@ def results():
             earned_duration_value=earned_duration_value,
             earned_value=earned_value,
             rank=rank,
-            users=users
+            users=users,
+            message=message,
+            status=status
         )

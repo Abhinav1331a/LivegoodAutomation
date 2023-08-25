@@ -44,7 +44,7 @@
     }
 
     .bg-glass {
-      background-color: hsla(0, 0%, 100%, 0.9) !important;
+      background-color: hsl(0, 0%, 100%) !important;
       backdrop-filter: saturate(200%) blur(25px);
     }
     .message {
@@ -55,17 +55,53 @@
       color: white;
       display: none;
     }
-    table {
-      border-collapse: collapse;
-    }
     th,
     td {
-      border: 1px solid black;
+      /* border: 1px solid black; */
       padding: 8px;
     }
-
-    tr:nth-child(even) {
-      background-color: #f2f2f2;
+    .headings{
+      background-color: rgb(0, 80, 173);
+      color: white;
+    }
+    table{
+      /* display: table; */
+      /* border: 1px black solid; */
+      /* border-collapse:collapse; */
+      box-sizing: border-box;
+      text-indent: initial;
+      /* border-spacing: 1 px; */
+      border-color: gray;
+    }
+    #users{
+      border:1px solid black;
+    }
+    .Key_0{
+     background-color: #DEECD6;
+     border: 1px solid black;  
+    }
+    .Key_1{
+     background-color: #F2A77D;
+     border: 1px solid black;  
+    }
+    .Key_2{
+     background-color: #B7B7B7;
+     border: 1px solid black;  
+    }
+    .Key_3{
+     background-color: #FFFF3B;
+     border: 1px solid black;  
+    }
+    .Key_4{
+     background-color: #91BAE0;
+     border: 1px solid black;  
+    }
+    .Key_5{
+     background-color: #001D53;
+     border: 1px solid black;  
+    }
+    .Key_Blank{
+     border: 1px dashed black; 
     }
   </style>
   <div id="message" class="message"></div>
@@ -84,35 +120,70 @@
           <div class="card-body px-4 py-5 px-md-5">
             <h2 class="fw-bold text-center">Detailed Statistics</h2>
             <section>
-              <div>
-                <h2>{{username}}</h2>
-                <h3>Latest Earnings</h3>
-                <p>Pay Period: {{earned_pay_period}}</p>
-                <p>Pay Duration: {{earned_duration_value}}</p>
-                <p>Pay Value: {{earned_value}}</p>
-                <h3>Rank: {{rank}}</h3>
-                <h3>Users</h3>
+              <div class="">
+                <div class="">
+                  <h2>{{username}}</h2>
+                  <h3>Latest Earnings</h3>
+                  <p>Pay Period: {{earned_pay_period}}</p>
+                  <p>Pay Duration: {{earned_duration_value}}</p>
+                  <p>Pay Value: {{earned_value}}</p>
+                  {% set total_count = namespace(value=0) %}
+                  {% for date, users in users.items() %}
+                      {% set total_count.value = total_count.value + users|length %}
+                  {% endfor %}
+                  <h3>Rank: {{rank}}</h3>
+                  <h3>Users: {{total_count.value}}</h3>
+                </div>
+                <div class="d-flex justify-content-center">
+                  <table cellspacing="5" cellpadding="2">
+                    <tbody><tr>
+                    <td><span class="Key_0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+                    <td>Unranked</td>
+                    <td><span class="Key_2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+                    <td>Silver</td>
+                    <td><span class="Key_4">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+                    <td>Platinum</td>
+                    <td><span class="Key_Blank">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+                    <td><nobr>Waiting to be filled</nobr></td>
+                    </tr>
+                    <tr>
+                    <td><span class="Key_1">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+                    <td>Bronze</td>
+                    <td><span class="Key_3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+                    <td>Gold</td>
+                    <td><span class="Key_5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+                    <td>Diamond</td>
+                    <td></td>
+                    <td></td>
+                    </tr></tbody></table>
+                </div>
                 <div class="d-flex flex-row align-items-end justify-content-between mb-3">
                     <div class="col-6">
                         <label for="dateFilter">Filter by date:</label>
                         <input class="form-control w-100" type="date" id="dateFilter" />
                     </div>
-                    <button class="btn btn-primary h-50" onclick="exportToExcelAsync()">Export to Excel</button>
+                    <button class="btn btn-primary h-50" style="background-color: rgb(0, 80, 173); border-color: rgb(0, 80, 173);" onclick="exportToExcelAsync()">Export to Excel</button>
                 </div>
                 <table id="users" class="w-100">
-                  <tr>
-                    <th>Date</th>
-                    <th>Name</th>
-                    <th>Rank</th>
+                  <tr class="headings">
+                      <th>S.no</th>
+                      <th>Name</th>
+                      <th>Rank</th>
+                      <th>Account Expiry Date</th>
                   </tr>
-                  {% for date, users in users.items() %} {% for user in users %}
-                  <tr class="userRow" data-date="{{date}}">
-                    <td>{{date}}</td>
-                    <td>{{user[0]}}</td>
-                    <td>{{user[1]}}</td>
-                  </tr>
-                  {% endfor %} {% endfor %}
-                </table>
+                  {% set sno = namespace(value=1) %}
+                  {% for date, users in users.items() %}
+                      {% for user in users %}
+                          <tr class="userRow" data-date="{{date}}">
+                              <td>{{sno.value}}</td>
+                              <td>{{user[0]}}</td>
+                              <td>{{user[1]}}</td>
+                              <td>{{date}}</td>
+                            </tr>
+                          {% set sno.value = sno.value + 1 %} 
+                      {% endfor %}
+                  {% endfor %}
+              </table>
               </div>
             </section>
           </div>
@@ -148,9 +219,36 @@
     );
     }
     
+    // define a function to get the color for a given rank
+    function getColor(rank) {
+        if (rank == "Unranked") {
+            return "#DEECD6";
+        } else if (rank == "Bronze") {
+            return "#F2A77D";
+        } else if (rank == "Silver") {
+            return "#B7B7B7";
+        } else if (rank == "Platinum") {
+            return "#91BAE0";
+        } else if (rank == "Gold") {
+            return "#FFFF3B";
+        } else if (rank == "Diamond") {
+            return "#001D53";
+        }
+    }
+
+
   $(document).ready(function () {
     if ("{{message}}" !== "None" && "{{status}}" !== "None"){
       showMessage("{{message}}", "{{status}}")
+    }
+    // get all rows in the table
+    var rows = document.querySelectorAll('#users tr.userRow');
+    // loop through each row and set the background color
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var rank = row.querySelector('td:nth-child(3)').textContent;
+        var color = getColor(rank);
+        row.style.backgroundColor = color;
     }
   });
   
