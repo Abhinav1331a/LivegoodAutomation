@@ -1,6 +1,6 @@
 import subprocess
 import sys
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, flash, get_flashed_messages, render_template, request, redirect, url_for, session
 import sqlite3
 from functools import wraps
 from selenium import webdriver
@@ -13,8 +13,12 @@ import logging
 from http import HTTPStatus
 from LiveGoodAutomationApp.helper import * 
 import chromedriver_binary
+import redis
 
 dashboard_bp = Blueprint('dashboard', __name__)
+
+# Connect to Redis server
+cache = redis.Redis()
 
 # Database setup
 conn = sqlite3.connect('livegood.db')
@@ -41,7 +45,15 @@ def dashboard():
         with sqlite3.connect('livegood.db') as conn:
             cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
             accounts = cursor.fetchall()
-            return render_template('dashboard.html', accounts=accounts)
+            message = None
+            status = None
+            flash_messages = get_flashed_messages(with_categories=True)
+            for category, msg in flash_messages:
+                if category == 'message':
+                    message = msg
+                elif category == 'status':
+                    status = msg
+            return render_template('dashboard.html', accounts=accounts, message=message, status=status)
     
     if request.method == 'POST':
         if not session.get('user_id'):
@@ -50,7 +62,9 @@ def dashboard():
         username = request.form['username']
         password = request.form['password']
         if not username or not password:
-            return render_template('dashboard.html', message="Invalid Arguments", status="error")
+            flash("Invalid Arguments", category='message')
+            flash("error", category='status')
+            return redirect(url_for('dashboard.dashboard'))        
         with sqlite3.connect('livegood.db') as conn:
             try:
                 conn.execute('INSERT INTO livegood_accounts (user, livegood_username, livegood_password) VALUES (?,?,?)', [user_id,username,password])
@@ -64,8 +78,11 @@ def dashboard():
                 message = "Oops, Try again!"
                 status = 'error'
             finally:
-                accounts = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id]).fetchall()
-                return render_template('dashboard.html', accounts=accounts, message=message, status=status)
+                # accounts = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id]).fetchall()
+                flash(message, category='message')
+                flash(status, category='status')
+                return redirect(url_for('dashboard.dashboard'))  
+                # return render_template('dashboard.html', accounts=accounts, message=message, status=status)
 
         
 @dashboard_bp.route('/deletelivegoodaccount', methods=['POST'])
@@ -74,7 +91,6 @@ def deletelivegoodaccount():
         if session['user_id'] in (None, ''):
             session['user_id']= None
             return redirect(url_for('auth.login'))
-        user_id = session['user_id']
         with sqlite3.connect('livegood.db') as conn: 
             try:
                 id = request.form['id']
@@ -86,9 +102,12 @@ def deletelivegoodaccount():
                 message = "Oops, Try again!"
                 status = "error"
             finally:
-                cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
-                accounts = cursor.fetchall()
-                return render_template('dashboard.html', accounts=accounts, message=message, status=status)
+                # cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
+                # accounts = cursor.fetchall()
+                flash(message, category='message')
+                flash(status, category='status')
+                return redirect(url_for('dashboard.dashboard'))  
+                # return render_template('dashboard.html', accounts=accounts, message=message, status=status)
 
 @dashboard_bp.route('/updatelivegoodaccount', methods=['POST'])
 def updatelivegoodaccount():
@@ -96,7 +115,6 @@ def updatelivegoodaccount():
         if session['user_id'] in (None, ''):
             session['user_id']= None
             return redirect(url_for('auth.login'))
-        user_id = session['user_id']
         with sqlite3.connect('livegood.db') as conn: 
             try:
                 id = request.form['id']
@@ -112,9 +130,12 @@ def updatelivegoodaccount():
                 message = "Oops, Try again!"
                 status = "error"
             finally:
-                cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
-                accounts = cursor.fetchall()
-                return render_template('dashboard.html', accounts=accounts, message=message, status=status)
+                # cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
+                # accounts = cursor.fetchall()
+                flash(message, category='message')
+                flash(status, category='status')
+                return redirect(url_for('dashboard.dashboard'))  
+                # return render_template('dashboard.html', accounts=accounts, message=message, status=status)
 
 @dashboard_bp.route('/detailedstats', methods=['POST'])
 def detailedstats():
@@ -127,9 +148,12 @@ def detailedstats():
             try:
                 livegood_username = request.form['livegood_username']
                 livegood_password = request.form['livegood_password']
-                        # Check if format of the input are valid
+                # Check if format of the input are valid
                 if livegood_username in (None, "") or livegood_password in (None, ""):
-                    return render_template('dashboard.html', message='Username, Password of LiveGood should not be empty or null. Invalid Format.', status="error")
+                    flash("Username, Password of LiveGood should not be empty or null. Invalid Format.", category='message')
+                    flash("error", category='status')
+                    return redirect(url_for('dashboard.dashboard'))  
+                    # return render_template('dashboard.html', message='Username, Password of LiveGood should not be empty or null. Invalid Format.', status="error")
 
                 # Create Options
                 options = Options()
@@ -168,15 +192,22 @@ def detailedstats():
                 users_ordered_by_date = getSubscribedUsersExpiryInfo(driver, wait)
                 
                 # Close the driver
-                driver.quit()
+                driver.quit()              
 
-                # Using session to implement PRG(Post Redirect Get) arch.
-                session['username'] = livegood_username
-                session['earned_pay_period'] = earned_pay_period
-                session['earned_duration_value'] = earned_duration_value
-                session['earned_value'] = earned_value
-                session['rank'] = current_rank
-                session['users'] = users_ordered_by_date
+                # Store results in cache accross users id to allow simulataneous exec.
+                data = {}
+                data['username'] = livegood_username
+                data['earned_pay_period'] = earned_pay_period
+                data['earned_duration_value'] = earned_duration_value
+                data['earned_value'] = earned_value
+                data['rank'] = current_rank
+                data['users'] = users_ordered_by_date
+
+                # Using session id and cache to implement PRG(Post Redirect Get) arch.
+                cache_key = session['user_id']
+
+                cache.set(cache_key, data)
+
                 # Redirect to results page
                 return redirect(url_for('dashboard.results'))
             
@@ -187,26 +218,38 @@ def detailedstats():
                 try:
                     login_failed_text = driver.find_element(By.XPATH, '/html/body/div[6]/div/section/div/div/div/table/tbody/tr/td[1]/font/nobr').text
                     if login_failed_text.lower().strip() == "login failed:":
-                        return render_template("dashboard.html", accounts=accounts, message="Login Failed! Invalid LiveGood Credentails",status="error")
+                        flash("Login Failed! Invalid LiveGood Credentails", category='message')
+                        flash("error", category='status')
+                        return redirect(url_for('dashboard.dashboard'))  
+                        # return render_template("dashboard.html", accounts=accounts, message="Login Failed! Invalid LiveGood Credentails",status="error")
                 except NoSuchElementException:
-                    return render_template("dashboard.html", accounts=accounts, message="Try again later!",status="error")
+                    flash("Oops! Try again later.", category='message')
+                    flash("error", category='status')
+                    return redirect(url_for('dashboard.dashboard'))  
+                    # return render_template("dashboard.html", accounts=accounts, message="Try again later!",status="error")
             except Exception as e:
                     logging.error("Failed due to %s", e)
-                    cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
-                    accounts = cursor.fetchall()
-                    message = "Oops, Try again!"
-                    status = "error"
-                    return render_template('dashboard.html', accounts=accounts, message=message, status=status)
+                    # cursor = conn.execute('SELECT * FROM livegood_accounts WHERE user = ?', [user_id])
+                    # accounts = cursor.fetchall()
+                    # message = "Oops, Try again!"
+                    # status = "error"
+                    flash("Oops! Try again later.", category='message')
+                    flash("error", category='status')
+                    return redirect(url_for('dashboard.dashboard')) 
+                    # return render_template('dashboard.html', accounts=accounts, message=message, status=status)
 
 @dashboard_bp.route('/results')
 def results():
-    # Retrieve data from session
-    username = session.get('username')
-    earned_pay_period = session.get('earned_pay_period')
-    earned_duration_value = session.get('earned_duration_value')
-    earned_value = session.get('earned_value')
-    rank = session.get('rank')
-    users = session.get('users')
+    # Retrieve data from cache
+    # Generate unique cache key using session ID
+    cache_key = session['user_id']
+    data = cache.get(cache_key)
+    username = data['username']
+    earned_pay_period = data['earned_pay_period']
+    earned_duration_value = data['earned_duration_value']
+    earned_value = data['earned_value']
+    rank = data['rank']
+    users = data['users']
     # Render template with data
     return render_template(
         'detailedStats.html',

@@ -149,7 +149,9 @@
     }
     
   $(document).ready(function () {
-    showMessage("{{message}}", "{{status}}");
+    if ("{{message}}" !== "None" && "{{status}}" !== "None"){
+      showMessage("{{message}}", "{{status}}")
+    }
   });
   
   function showMessage(text, status) {

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, flash, get_flashed_messages, render_template, request, redirect, url_for, session
 import sqlite3
 from functools import wraps
 
@@ -31,15 +31,32 @@ def signup():
                 conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
                 conn.commit()
             except:
-                return render_template('signup.html', message="Signup failed!", status="error")
-
-        return render_template('login.html', message="Signup successful!", status="success")
+                flash("Signup failed!", category='message')
+                flash("error", category='status')
+                return redirect(url_for('auth.signup'))
+                # return render_template('signup.html', message="Signup failed!", status="error")
+        
+        flash("Signup successful!", category='message')
+        flash("success", category='status')
+        return redirect(url_for('auth.login'))
+        # return render_template('login.html', message="Signup successful!", status="success")
+    
     if request.method == "GET":
-        return render_template('signup.html')
+        flash_messages = get_flashed_messages(with_categories=True)
+        message=None
+        status=None
+        for category, msg in flash_messages:
+            if category == 'message':
+                message = msg
+            elif category == 'status':
+                status = msg
+        return render_template('signup.html', message=message, status=status)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session:
+        flash("Already logged in!", category='message')
+        flash("success", category='status')
         return redirect(url_for('dashboard.dashboard'))
     
     if request.method == 'POST':
@@ -52,17 +69,37 @@ def login():
                 user = cursor.fetchone()
                 if user:
                     session['user_id'] = user[0]
-                    return render_template('dashboard.html', message="Successfully logged in!", status="success")
+                    flash("Successfully logged in!", category='message')
+                    flash("success", category='status')
+                    return redirect(url_for('dashboard.dashboard')) 
+                    # return render_template('dashboard.html', message="Successfully logged in!", status="success")
                 else:
-                    return render_template('login.html', message='Invalid credentials, try again!', status = "error")
+                    flash("Invalid credentials, try again!", category='message')
+                    flash("error", category='status')
+                    return redirect(url_for('auth.login')) 
+                    # return render_template('login.html', message='Invalid credentials, try again!', status = "error")
             except:
-                return render_template('login.html', message="Login Failed!", status="error")
+                flash("Login Failed!", category='message')
+                flash("error", category='status')
+                return redirect(url_for('auth.login'))
+                # return render_template('login.html', message="Login Failed!", status="error")
     
-    return render_template('login.html')
+    if request.method=="GET":
+        flash_messages = get_flashed_messages(with_categories=True)
+        message=None
+        status=None
+        for category, msg in flash_messages:
+            if category == 'message':
+                message = msg
+            elif category == 'status':
+                status = msg
+        return render_template('login.html', message=message, status=status)
 
 @auth_bp.route('/logout')
 def logout():
     session.pop('user_id', None)
+    flash("Successfully logged out!", category='message')
+    flash("success", category='status')
     return redirect(url_for('auth.login'))
 
 
@@ -70,6 +107,8 @@ def login_required(view_func):
     @wraps(view_func)
     def wrapper(*args, **kwargs):
         if 'user_id' not in session:
+            flash("Session timed out. Login again!", category='message')
+            flash("error", category='status')
             return redirect(url_for('auth.login'))
         return view_func(*args, **kwargs)
     return wrapper

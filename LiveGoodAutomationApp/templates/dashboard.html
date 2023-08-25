@@ -178,7 +178,9 @@ content %}
 <script>
   <!-- JavaScript -->
   $(document).ready(function() {
+    if ("{{message}}" !== "None" && "{{status}}" !== "None"){
       showMessage("{{message}}", "{{status}}")
+    }
   });
   function showMessage(text, status) {
     var message = document.getElementById('message');

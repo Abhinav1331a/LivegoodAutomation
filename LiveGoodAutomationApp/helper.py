@@ -97,10 +97,21 @@ def getSubscribedUsersExpiryInfo(driver, wait):
             rank = "Unranked"    
         user = row.find_element(By.XPATH, './td[2]').text
         date_string = row.find_element(By.XPATH, './td[5]').text
+        # print(date_string)
         users_ordered_by_date.setdefault(date_string, []).append((user, rank))
     
     # sort the keys by their corresponding date values
-    sorted_keys = sorted(users_ordered_by_date.keys(), key=lambda x: datetime.strptime(x, '%Y-%m-%d').date())
+    sorted_keys = []
+    for key in users_ordered_by_date.keys():
+        try:
+            date = datetime.strptime(key, '%Y-%m-%d').date()
+            sorted_keys.append((key, date))
+        except ValueError:
+            # Skip the key if it doesn't match the format
+            continue
+
+    sorted_keys.sort(key=lambda x: x[1])
+    sorted_keys = [key for key, date in sorted_keys]
 
     # create a new ordered dictionary with the sorted keys
     users_ordered_by_date = OrderedDict((key, users_ordered_by_date[key]) for key in sorted_keys)
