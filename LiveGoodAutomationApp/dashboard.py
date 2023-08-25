@@ -190,7 +190,7 @@ def detailedstats():
                 # Close the driver
                 driver.quit()              
 
-                # Store results in cache accross users id to allow simulataneous exec.
+                # Store results in session accross users id to allow simulataneous exec.
                 data = {}
                 data['username'] = livegood_username
                 data['earned_pay_period'] = earned_pay_period
@@ -199,9 +199,9 @@ def detailedstats():
                 data['rank'] = current_rank
                 data['users'] = users_ordered_by_date
 
-                # Using session id and cache to implement PRG(Post Redirect Get) arch.
-                cache_key = session['user_id']
-                flash(data, category=cache_key)
+                # Using session id and session to implement PRG(Post Redirect Get) arch.
+                session_key = str(session['user_id'])+"stats"
+                session[session_key] = data
 
                 # Redirect to results page
                 return redirect(url_for('dashboard.results'))
@@ -236,20 +236,14 @@ def detailedstats():
 @dashboard_bp.route('/results')
 def results():
     if request.method=="GET":
-        # Retrieve data from cache
-        # Generate unique cache key using session ID
-        cache_key = session['user_id']
-        flash_messages = get_flashed_messages(with_categories=True)
-        data=None
-        for category, msg in flash_messages:
-            if category == cache_key:
-                data = msg
-
-        if data==None:
+        # Retrieve data from session
+        # Generate unique session key using session ID
+        session_key = str(session['user_id'])+"stats"
+        if session_key not in session:
             flash("Oops! Try again later.", category="message")
             flash("error", category="status")
             return redirect(url_for("dashboard.dashboard"))
-        
+        data = session.get(session_key)
         username = data['username']
         earned_pay_period = data['earned_pay_period']
         earned_duration_value = data['earned_duration_value']
