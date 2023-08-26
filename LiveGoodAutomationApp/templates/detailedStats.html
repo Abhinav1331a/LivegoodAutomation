@@ -44,7 +44,7 @@
     }
 
     .bg-glass {
-      background-color: hsl(0, 0%, 100%) !important;
+      background-color: hsla(0, 0%, 100%, 0.952) !important;
       backdrop-filter: saturate(200%) blur(25px);
     }
     .message {
@@ -105,7 +105,7 @@
     }
   </style>
   <div id="message" class="message"></div>
-  <div class="container px-4 py-5 px-md-5 text-center text-lg-start my-5">
+  <div class=" px-4 py-5 px-md-5 text-center text-lg-start my-5">
     <div class="row gx-lg-5 align-items-center mb-5">
       <div class="position-relative">
         <div
@@ -164,12 +164,12 @@
                     </div>
                     <button class="btn btn-primary h-50" style="background-color: rgb(0, 80, 173); border-color: rgb(0, 80, 173);" onclick="exportToExcelAsync()">Export to Excel</button>
                 </div>
-                <table id="users" class="w-100">
+                <table id="users"  cellspacing="0" width="100%" class="w-100">
                   <tr class="headings">
-                      <th>S.no</th>
-                      <th>Name</th>
-                      <th>Rank</th>
-                      <th>Account Expiry Date</th>
+                      <th class="th-sm">S.no</th>
+                      <th class="th-sm">Name</th>
+                      <th class="th-sm">Rank</th>
+                      <th class="th-sm">Account Expiry Date</th>
                   </tr>
                   {% set sno = namespace(value=1) %}
                   {% for date, users in users.items() %}
@@ -184,6 +184,15 @@
                       {% endfor %}
                   {% endfor %}
               </table>
+              <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-end">
+                  <li class="page-item prevLi disabled"><a class="page-link prev" href="#" tabindex="-1">Previous</a></li>
+                  <li class="page-item"><a class="page-link" href="#">1</a></li>
+                  <li class="page-item"><a class="page-link" href="#">2</a></li>
+                  <li class="page-item"><a class="page-link" href="#">3</a></li>
+                  <li class="page-item nextLi"><a class="page-link next" href="#">Next</a></li>
+                </ul>
+              </nav>
               </div>
             </section>
           </div>
@@ -199,43 +208,118 @@
 ></script>
 <script src="https://cdn.jsdelivr.net/npm/excellentexport@3"></script>
 <script type="text/javascript">
-    async function exportToExcelAsync() {
-    console.log('here')
-    // Call ExcellentExport.convert
-    ExcellentExport.convert(
-        {
-        anchor: "anchorExcel",
-        filename: "users",
-        format: "xlsx",
-        },
-        [
-        {
-            name: "Account Expiry",
-            from: {
-            table: "users",
-            },
-        },
-        ]
-    );
-    }
-    
-    // define a function to get the color for a given rank
-    function getColor(rank) {
-        if (rank == "Unranked") {
-            return "#DEECD6";
-        } else if (rank == "Bronze") {
-            return "#F2A77D";
-        } else if (rank == "Silver") {
-            return "#B7B7B7";
-        } else if (rank == "Platinum") {
-            return "#91BAE0";
-        } else if (rank == "Gold") {
-            return "#FFFF3B";
-        } else if (rank == "Diamond") {
-            return "#001D53";
-        }
-    }
+  async function exportToExcelAsync() {
+  console.log('here')
+  // Call ExcellentExport.convert
+  ExcellentExport.convert(
+      {
+      anchor: "anchorExcel",
+      filename: "users",
+      format: "xlsx",
+      },
+      [
+      {
+          name: "Account Expiry",
+          from: {
+          table: "users",
+          },
+      },
+      ]
+  );
+  }
+  
+  // define a function to get the color for a given rank
+  function getColor(rank) {
+      if (rank == "Unranked") {
+          return "#DEECD6";
+      } else if (rank == "Bronze") {
+          return "#F2A77D";
+      } else if (rank == "Silver") {
+          return "#B7B7B7";
+      } else if (rank == "Platinum") {
+          return "#91BAE0";
+      } else if (rank == "Gold") {
+          return "#FFFF3B";
+      } else if (rank == "Diamond") {
+          return "#001D53";
+      }
+  }
 
+// define the updateTable function
+function updateTable(pageNumber) {
+
+  // hide all rows
+  for (var i = 0; i < rows.length; i++) {
+      rows[i].style.display = 'none';
+  }
+
+  // show the rows for the new page
+  var start = (pageNumber - 1) * rowsPerPage;
+  var end = start + rowsPerPage;
+  for (var i = start; i < end && i < rows.length; i++) {
+      rows[i].style.display = '';
+  }
+
+  
+  // update the current page number
+  currentPageNumber = pageNumber;
+  
+  var previousButtonLi = document.querySelector('.prevLi');
+  console.log(previousButtonLi)
+  var nextButtonLi = document.querySelector('.nextLi');
+  
+  if (currentPageNumber == 1) {
+    if (previousButtonLi.classList.contains('disabled') == false){
+      previousButtonLi.classList.add('disabled');
+    }
+    // previousButtonLi.querySelector('a').setAttribute('tabindex', '-1');
+  } 
+  if (currentPageNumber == numPages) {
+      nextButtonLi.classList.add('disabled');
+      // nextButtonLi.querySelector('a').setAttribute('tabindex', '-1');
+  } 
+  if (currentPageNumber>1){
+    previousButtonLi.classList.remove('disabled');
+  } 
+  if (currentPageNumber<numPages){
+    nextButtonLi.classList.remove('disabled');
+  }
+    
+}
+
+// define the number of rows per page
+var rowsPerPage = 10;
+
+// get the table element and rows
+var table = document.querySelector('#users');
+var rows = table.querySelectorAll('tr.userRow');
+
+// calculate the number of pages
+var numPages = Math.ceil(rows.length / rowsPerPage);
+
+// hide all rows except the first page
+for (var i = rowsPerPage; i < rows.length; i++) {
+    rows[i].style.display = 'none';
+}
+
+// add event listeners to the page-link elements
+var currentPageNumber = 1;
+var pageLinks = document.querySelectorAll('.page-link');
+for (var i = 0; i < pageLinks.length; i++) {
+    pageLinks[i].addEventListener('click', function(event) {
+        // get the clicked page number
+        var pageNumber;
+        if (event.target.classList.contains('prev')) {
+            pageNumber = currentPageNumber - 1;
+        } else if (event.target.classList.contains('next')) {
+            pageNumber = currentPageNumber + 1;
+        } else {
+            pageNumber = parseInt(event.target.textContent);
+        }
+        // update the table content
+        updateTable(pageNumber);
+    });
+}
 
   $(document).ready(function () {
     if ("{{message}}" !== "None" && "{{status}}" !== "None"){
