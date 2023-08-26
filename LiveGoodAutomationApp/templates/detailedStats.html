@@ -162,7 +162,7 @@
                         <label for="dateFilter">Filter by date:</label>
                         <input class="form-control w-100" type="date" id="dateFilter" />
                     </div>
-                    <button class="btn btn-primary h-50" style="background-color: rgb(0, 80, 173); border-color: rgb(0, 80, 173);" onclick="exportToExcelAsync()">Export to Excel</button>
+                    <button class="btn btn-primary h-50" style="background-color: rgb(0, 80, 173); border-color: rgb(0, 80, 173);" onclick="exportCSVExcel()">Export to Excel</button>
                 </div>
                 <table id="users"  cellspacing="0" width="100%" class="w-100">
                   <tr class="headings">
@@ -203,30 +203,21 @@
   <a id="anchorExcel" style="display: none;"></a>
 </section>
 <script
-  src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"
+  src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"
   type="text/javascript"
 ></script>
-<script src="https://cdn.jsdelivr.net/npm/excellentexport@3"></script>
-<script type="text/javascript">
-  async function exportToExcelAsync() {
-  console.log('here')
-  // Call ExcellentExport.convert
-  ExcellentExport.convert(
-      {
-      anchor: "anchorExcel",
-      filename: "users",
-      format: "xlsx",
-      },
-      [
-      {
-          name: "Account Expiry",
-          from: {
-          table: "users",
-          },
-      },
-      ]
-  );
-  }
+<script
+    src="https://cdn.rawgit.com/rainabba/jquery-table2excel/1.1.0/dist/jquery.table2excel.min.js"></script>
+<script>
+function exportCSVExcel() {
+	$('#users').table2excel({
+		exclude: ".no-export",
+		filename: "download.xls",
+		fileext: ".xls",
+		exclude_links: true,
+		exclude_inputs: true
+	});
+}
   
   // define a function to get the color for a given rank
   function getColor(rank) {
@@ -354,19 +345,32 @@ for (var i = 0; i < pageLinks.length; i++) {
     }, 3000);
   }
 
-  const dateFilter = document.getElementById("dateFilter");
-  const userRows = document.querySelectorAll(".userRow");
-  dateFilter.addEventListener("change", (event) => {
-    const selectedDate = event.target.value;
+const dateFilter = document.getElementById("dateFilter");
+const userRows = document.querySelectorAll(".userRow");
+dateFilter.addEventListener("change", (event) => {
+  showingMessage.textContent = 'Showing ' + ((currentPageNumber - 1) * rowsPerPage + 1) + ' - ' + Math.min(currentPageNumber * rowsPerPage, rows.length) + ' out of ' + rows.length;
+
+  const selectedDate = event.target.value;
+  console.log(selectedDate)
+  if (selectedDate === "") {
+    // show all rows if the clear option is selected
+    userRows.forEach((row) => {
+      row.style.display = "";
+    });
+  } else {
+    // filter rows by date
     userRows.forEach((row) => {
       const rowDate = row.getAttribute("data-date");
       if (selectedDate === rowDate) {
         row.style.display = "";
+        row.classList.remove("no-export")
       } else {
         row.style.display = "none";
+        row.classList.add("no-export")
       }
     });
-  });
+  }
+});
 </script>
 <!-- Section: Design Block -->
 {% endblock %}
