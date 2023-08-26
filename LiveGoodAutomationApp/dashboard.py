@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from flask import Blueprint, flash, get_flashed_messages, render_template, request, redirect, url_for, session
@@ -13,8 +14,11 @@ import logging
 from http import HTTPStatus
 from LiveGoodAutomationApp.helper import * 
 import chromedriver_binary
+from google.cloud import firestore
 
 dashboard_bp = Blueprint('dashboard', __name__)
+# Initialize Firestore client
+db = firestore.Client()
 
 # Database setup
 conn = sqlite3.connect('livegood.db')
@@ -34,8 +38,7 @@ conn.close()
 @dashboard_bp.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     if request.method=='GET':
-        if session['user_id'] in (None, ''):
-            session['user_id']= None
+        if "user_id" not in session:
             return redirect(url_for('auth.login'))
         user_id = session['user_id']
         with sqlite3.connect('livegood.db') as conn:
@@ -52,7 +55,7 @@ def dashboard():
             return render_template('dashboard.html', accounts=accounts, message=message, status=status)
     
     if request.method == 'POST':
-        if not session.get('user_id'):
+        if "user_id" not in session:
             return redirect(url_for('auth.login'))
         user_id = session['user_id']
         username = request.form['username']
@@ -84,8 +87,7 @@ def dashboard():
 @dashboard_bp.route('/deletelivegoodaccount', methods=['POST'])
 def deletelivegoodaccount():
     if request.method == 'POST':
-        if session['user_id'] in (None, ''):
-            session['user_id']= None
+        if "user_id" not in session:
             return redirect(url_for('auth.login'))
         with sqlite3.connect('livegood.db') as conn: 
             try:
@@ -108,8 +110,7 @@ def deletelivegoodaccount():
 @dashboard_bp.route('/updatelivegoodaccount', methods=['POST'])
 def updatelivegoodaccount():
     if request.method == 'POST':
-        if session['user_id'] in (None, ''):
-            session['user_id']= None
+        if "user_id" not in session:
             return redirect(url_for('auth.login'))
         with sqlite3.connect('livegood.db') as conn: 
             try:
@@ -136,8 +137,7 @@ def updatelivegoodaccount():
 @dashboard_bp.route('/detailedstats', methods=['POST'])
 def detailedstats():
     if request.method == "POST":
-        if session['user_id'] in (None, ''):
-            session['user_id']= None
+        if "user_id" not in session:
             return redirect(url_for('auth.login'))
         user_id = session['user_id']
         with sqlite3.connect('livegood.db') as conn:
@@ -201,7 +201,22 @@ def detailedstats():
 
                 # Using session id and session to implement PRG(Post Redirect Get) arch.
                 session_key = str(session['user_id'])+"stats"
-                session[session_key] = data
+                session[session_key] = livegood_username
+
+                # Store data in firestore because some livegood accounts data is huge
+                # Create a reference to the document with the name as user_id
+                doc_ref = db.collection('users').document(str(user_id))
+                
+                # Set the data for the document
+                doc_ref.set({
+                    livegood_username: {
+                        'earned_pay_period': earned_pay_period,
+                        'earned_duration_value': earned_duration_value,
+                        'earned_value': earned_value,
+                        'rank': current_rank,
+                        'users': json.dumps(users_ordered_by_date)
+                    }
+                }, merge=True)
 
                 # Redirect to results page
                 return redirect(url_for('dashboard.results'))
@@ -237,30 +252,40 @@ def detailedstats():
 def results():
     if request.method=="GET":
         # Retrieve data from session
+        if "user_id" not in session:
+            return redirect(url_for("auth.login"))    
+        user_id = session['user_id']    
         # Generate unique session key using session ID
         session_key = str(session['user_id'])+"stats"
         if session_key not in session:
             flash("Oops! Try again later.", category="message")
             flash("error", category="status")
             return redirect(url_for("dashboard.dashboard"))
-        data = session.get(session_key)
-        username = data['username']
-        earned_pay_period = data['earned_pay_period']
-        earned_duration_value = data['earned_duration_value']
-        earned_value = data['earned_value']
-        rank = data['rank']
-        users = data['users']
+        livegood_username = session.get(session_key)
+        user_id = session['user_id']
+
+        # Create a reference to the document with the name as user_id
+        doc_ref = db.collection('users').document(str(user_id))
+
+        # Get the data from the document
+        doc = doc_ref.get()
+        doc_data = doc.to_dict()
+
+        # Access the data under the livegood_username field
+        user_data = doc_data[livegood_username]
+
+
         # Render template with data
         message=None
         status=None
         return render_template(
             'detailedStats.html',
-            username=username,
-            earned_pay_period=earned_pay_period,
-            earned_duration_value=earned_duration_value,
-            earned_value=earned_value,
-            rank=rank,
-            users=users,
+            username=livegood_username,
+            earned_pay_period=user_data["earned_pay_period"],
+            earned_duration_value=user_data["earned_duration_value"],
+            earned_value=user_data["earned_value"],
+            rank=user_data["rank"],
+            users=json.loads(user_data["users"]),
             message=message,
             status=status
         )
