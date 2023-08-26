@@ -264,27 +264,25 @@ function updateTable(pageNumber) {
   // update the current page number
   currentPageNumber = pageNumber;
   
-  var previousButtonLi = document.querySelector('.prevLi');
-  console.log(previousButtonLi)
-  var nextButtonLi = document.querySelector('.nextLi');
-  
+  // enable or disable the previous and next buttons
+  var previousButton = document.querySelector('.prev');
+  var nextButton = document.querySelector('.next');
   if (currentPageNumber == 1) {
-    if (previousButtonLi.classList.contains('disabled') == false){
-      previousButtonLi.classList.add('disabled');
+    if (previousButton.parentNode.classList.contains("disabled")==false){
+      previousButton.parentNode.classList.add('disabled');
     }
-    // previousButtonLi.querySelector('a').setAttribute('tabindex', '-1');
-  } 
-  if (currentPageNumber == numPages) {
-      nextButtonLi.classList.add('disabled');
-      // nextButtonLi.querySelector('a').setAttribute('tabindex', '-1');
-  } 
-  if (currentPageNumber>1){
-    previousButtonLi.classList.remove('disabled');
-  } 
-  if (currentPageNumber<numPages){
-    nextButtonLi.classList.remove('disabled');
+  } else {
+      previousButton.parentNode.classList.remove('disabled');
   }
-    
+  if (currentPageNumber == numPages) {
+      nextButton.parentNode.classList.add('disabled');
+  } else {
+      nextButton.parentNode.classList.remove('disabled');
+  }
+  
+  // update the "showing _ out of _" message
+  showingMessage.textContent = 'Showing ' + ((currentPageNumber - 1) * rowsPerPage + 1) + ' - ' + Math.min(currentPageNumber * rowsPerPage, rows.length) + ' out of ' + rows.length;
+
 }
 
 // define the number of rows per page
@@ -320,6 +318,12 @@ for (var i = 0; i < pageLinks.length; i++) {
         updateTable(pageNumber);
     });
 }
+
+  // add a dynamic "showing _ out of _" message above the table
+  var showingMessage = document.createElement('p');
+  showingMessage.textContent = 'Showing ' + ((currentPageNumber - 1) * rowsPerPage + 1) + ' - ' + Math.min(currentPageNumber * rowsPerPage, rows.length) + ' out of ' + rows.length;
+  table.parentNode.insertBefore(showingMessage, table);
+
 
   $(document).ready(function () {
     if ("{{message}}" !== "None" && "{{status}}" !== "None"){
